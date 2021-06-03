@@ -1,0 +1,16 @@
+[master]
+master ansible_host=192.168.40.36
+
+[slave]
+slave ansible_host=192.168.40.41
+
+[postgresql-servers:children]
+master
+slave
+
+[etcd_pgbouncer]
+etcd_pgbouncer ansible_host=192.168.40.37
+
+[all:vars]
+ansible_user=root
+ansible_pass=password

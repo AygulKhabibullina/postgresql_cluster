@@ -1,0 +1,11 @@
+---
+
+master: 192.168.40.36
+slave: 192.168.40.41
+db_name: testdb
+db_user_name: postgres
+db_user_pass: PASSWORD
+
+
+pg_hba: \nhost backupdb    postgres   192.168.40.41/0  md5\nhost replication postgres   192.168.40.41/0  md5\nhost testdb      postgres   192.168.40.41/0  md5
+

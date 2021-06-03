@@ -1,0 +1,66 @@
+---
+
+- name: Install packages
+  yum: 
+    name: '{{ item }}'
+    state: present
+  loop:
+    - gcc
+    - python-devel
+    - epel-release
+
+- name: Install Pip
+  yum: name=python2-pip state=installed  
+
+- name: Install Rpm
+  yum: name=http://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm state=installed
+
+- name: Install Postgresql10-server
+  yum: name=postgresql10-server state=installed   
+
+- name: Install Postgresql10
+  yum: name=postgresql10 state=installed  
+  
+- name: Install Python3
+  shell: yum install -y python3
+
+- name: Upgrade pip 
+  shell: pip3 install --upgrade pip
+
+- name: Install upgrade
+  shell: pip3 install --upgrade setuptools
+
+- name: Install Python3-devel
+  shell: yum install -y  python3-devel
+
+- name: Install Patroni
+  shell: pip3 install patroni
+
+- name: Install etcd
+  shell: pip3 install python-etcd
+
+- name: psycopg2-binary
+  shell: pip3 install psycopg2-binary
+
+- name: Copy Patroni service file
+  copy: src={{ source_file_patroni_service }} dest={{ destin_file_patroni_service }} 
+  notify: Restart patroni
+
+- name: Copy Patroni YML master
+  copy: src={{ source_file_patroni_yml_master }} dest={{ destin_file_patroni_yml }}
+  when: ansible_host ==  master
+  notify: Restart patroni
+
+- name: Copy Patroni YML slave
+  copy: src={{ source_file_patroni_yml_slave }} dest={{ destin_file_patroni_yml }}
+  when: ansible_host == slave
+  notify: Restart patroni
+
+- name: Create directory for data, give ownership for postgres user, change access rights
+  shell: mkdir -p /data/patroni && chown -R postgres:postgres /data && chmod -R 700 /data
+
+- name: Start patroni service and enable it 
+  service: name=patroni state=started #enabled=yes
+
+- name: Stop firewalld service (just in case)
+  service: name=firewalld state=stopped

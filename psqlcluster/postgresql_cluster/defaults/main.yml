@@ -1,0 +1,9 @@
+---
+# defaults file
+
+source_file_patroni_service: ../files/patroni.service
+destin_file_patroni_service: /etc/systemd/system/patroni.service
+
+source_file_patroni_yml_master: ../files/patroni_master.yml
+source_file_patroni_yml_slave: ../files/patroni_slave.yml
+destin_file_patroni_yml: /etc/patroni.yml

@@ -1,0 +1,8 @@
+---
+# defaults file
+
+source_pgbouncer_ini: ../files/pgbouncer.ini
+destin_pgbouncer_ini: /etc/pgbouncer/pgbouncer.ini
+
+source_userlist: ../files/userlist.txt
+destin_userlist: /etc/pgbouncer/userlist.txt

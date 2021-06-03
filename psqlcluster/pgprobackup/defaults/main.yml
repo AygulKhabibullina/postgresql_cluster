@@ -1,0 +1,9 @@
+---
+# defaults file
+
+source_pg_hba: ../files/pg_hba.conf
+destin_pg_hba: /var/lib/pg_hba.conf
+
+source_backup_script: ../files/make_bck.sh
+destin_backup_script: /home/backup_user/scr/bkp_base.sh
+

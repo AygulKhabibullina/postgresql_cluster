@@ -1,0 +1,18 @@
+---
+
+- name: Install pgbouncer 
+  shell: yum install -y  pgbouncer
+
+- name: Create directory for conf
+  shell: mkdir /etc/pgbouncer
+#  ignore_errors: yes
+
+- name: Copy pgbouncer conf
+  copy: src={{ source_pgbouncer_ini }} dest={{ destin_pgbouncer_ini }} 
+  notify: Restart Pgbouncer
+
+- name: Copy Userlist
+  copy: src={{ source_userlist }} dest={{ destin_userlist }} 
+
+- name: Start pgbouncer and enable
+  service: name=pgbouncer state=started enabled=yes

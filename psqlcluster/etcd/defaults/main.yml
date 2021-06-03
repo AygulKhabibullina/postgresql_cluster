@@ -1,0 +1,5 @@
+---
+# defaults file
+
+source_file_etcd_conf: ../files/etcd.conf
+destin_file_etcd_conf: /etc/etcd/etcd.conf

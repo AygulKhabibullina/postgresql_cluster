@@ -1,0 +1,99 @@
+---
+
+
+- name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+  openssh_keypair:
+    path: /root/.ssh/id_rsa
+    owner: root
+    group: root
+
+- name: Fix owner of the generated pub key
+  file:
+    path: /root/.ssh/id_rsa.pub
+    owner: root
+    group: root
+
+- name: Install sshpass
+  yum: name=sshpass state=installed
+
+- name: Copy ssh key
+  shell: sshpass -p password ssh-copy-id -i /root/.ssh/id_rsa.pub -o StrictHostKeyChecking=no root@{{ slave }}
+
+
+
+- name: Download package for pgprobackup
+  yum: name=https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm state=installed
+
+- name: Install package for pgprobackup
+  shell: rpm -ivh https://repo.postgrespro.ru/pg_probackup/keys/pg_probackup-repo-centos.noarch.rpm
+#  ignore_errors: True
+
+- name: Install pgprobackup
+  yum: name=pg_probackup-10 state=installed
+
+- name: Install pgprobackup-debuginfo
+  yum: name=pg_probackup-10-debuginfo state=installed
+
+- name: Add for replication connection from host
+  shell: echo -e  "{{ pg_hba }}" >> /data/patroni/pg_hba_bckdss &&  echo -e  "{{ pg_hba }}" >> /data/patroni/pg_hba.conf
+
+- name: Restart postgresql service
+  shell: service patroni restart
+
+
+- name: Create directory for backup
+  file:
+    path: /home/backup_user/backup_db
+    state: directory
+
+- name: Create alias and variables
+  shell: BACKUP_PATH=/home/backup_user/backup_db && export BACKUP_PATH && alias pg_probackup='pg_probackup-10'
+
+- name: Init backup
+  shell: BACKUP_PATH=/home/backup_user/backup_db  pg_probackup-10 init
+#  ignore_errors: yes
+
+- name: Add Postgresql  Instance
+  shell: BACKUP_PATH=/home/backup_user/backup_db  pg_probackup-10 add-instance --instance=db1 --remote-host={{ slave }} --remote-user=root --pgdata=/data/patroni/
+#  ignore_errors: yes
+
+- name: Backup policy
+  shell: BACKUP_PATH=/home/backup_user/backup_db  pg_probackup-10 set-config --instance db1 --retention-window=7 --retention-redundancy=2
+
+- name: Copy pg_hba.conf
+  copy: src={{ source_pg_hba }} dest={{ destin_pg_hba }}
+
+- name: Create file with DB credentials
+  shell: echo "{{ slave }}:5432:replication:backup:Strong_PWD">>~/.pgpass && echo "{{ slave }}:5432:{{ db_name }}:{{ db_user_name }}:{{ db_user_pass }}">>~/.pgpass && chmod 600 ~/.pgpass
+
+- name: Create backup
+  shell: BACKUP_PATH=/home/backup_user/backup_db PGPASSWORD={{ db_user_pass }}  pg_probackup-10 backup --instance=db1 -j2 --backup-mode=FULL --compress --stream --delete-expired --pguser={{ db_user_name }} --pgdatabase={{ db_name }} --remote-host={{ slave }} --remote-user=root
+
+- name: Set config for db instance
+  shell: BACKUP_PATH=/home/backup_user/backup_db  pg_probackup-10 set-config --instance=db1 --remote-host={{ slave }} --remote-user=root --pguser={{ db_user_name }} --pgdatabase={{ db_name }} --log-filename=backup_cron.log --log-level-file=log --log-directory=/home/backup_user/backup_db/log
+
+- name: Create Incremental backup
+  shell: BACKUP_PATH=/home/backup_user/backup_db  PGPASSWORD={{ db_user_pass }}  pg_probackup-10 backup --instance=db1 -j2 --progress -b DELTA --compress --stream --delete-expired
+
+- name: Create directory
+  shell: mkdir /home/backup_user/scr/
+#  ignore_errors: True  
+
+- name: Copy backup script
+  copy: src={{ source_backup_script }} dest={{ destin_backup_script }}
+
+- name: Crontask for full backup
+  ansible.builtin.cron:
+    name: "full backup"
+    weekday: "7"
+    minute: "00"
+    hour: "01"
+    job: "/home/backup_user/scr/bkp_base.sh FULL"
+
+- name: Crontask for delta backup
+  ansible.builtin.cron:
+    name: "delta backup"
+    weekday: "1,2,3,4,5,6"
+    minute: "00"
+    hour: "01"
+    job: "/home/backup_user/scr/bkp_base.sh DELTA"

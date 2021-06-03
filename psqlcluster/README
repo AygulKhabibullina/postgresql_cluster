@@ -1,0 +1,31 @@
+1. В etcd.conf исправить ip на ip etcd сервера 
+2. Исправить external_vars.yml
+3. Исправить inventory
+4. В patroni_master и patroni_slave исправить ip для мастера, слейва, etcd
+5. В pgbouncer.ini исправить testdb, admin_users, в userlist исправить пользователей
+6. Исправить pgprobackup/files/pg_hba.conf и pgprobackup/vars/main.yml (база, юзер, пароль)
+7. ansible-playbook -i inventory playpook.yml
+8. Бекапы проверить: pg_probackup show -B /home/backup_user/backup_db/ (путь, где находятся бекапы)
+9. Чтобы, сделать бекап. нужна база, в которой нужно добавить роль:
+
+BEGIN;
+CREATE ROLE backup WITH LOGIN REPLICATION password 'Strong_PWD';
+GRANT USAGE ON SCHEMA pg_catalog TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.current_setting(text) TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.pg_is_in_recovery() TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.pg_start_backup(text, boolean, boolean) TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.pg_stop_backup(boolean, boolean) TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.pg_create_restore_point(text) TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.pg_switch_wal() TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.pg_last_wal_replay_lsn() TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.txid_current() TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.txid_current_snapshot() TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.txid_snapshot_xmax(txid_snapshot) TO backup;
+GRANT EXECUTE ON FUNCTION pg_catalog.pg_control_checkpoint() TO backup;
+COMMIT;
+
+
+
+https://habr.com/ru/company/barsgroup/blog/515592/
+
+Бекап делается каждую неделю полный, и инкрементальный каждый день, можно поменять.  

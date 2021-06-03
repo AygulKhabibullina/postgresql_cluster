@@ -1,0 +1,35 @@
+---
+
+- name: Install Etcd
+  hosts: etcd_pgbouncer
+  become: yes
+
+  roles:
+  - etcd
+
+- name: Install Patroni
+  hosts: postgresql-servers
+  become: yes
+
+  vars_files:
+    - ./postgresql_cluster/vars/main.yml
+
+  roles:
+  - postgresql_cluster
+
+- name: Install Pgbouncer
+  hosts: etcd_pgbouncer
+  become: yes
+
+  roles:
+  - pgbouncer
+
+- name: Install pgprobackup
+  hosts: slave
+  become: true
+  
+  vars_files:
+    - ./pgprobackup/vars/main.yml
+
+  roles:
+  - pgprobackup 

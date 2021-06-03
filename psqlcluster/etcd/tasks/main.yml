@@ -1,0 +1,22 @@
+---
+- name: Install packages
+  yum:
+    name: '{{ item }}'
+    state: present
+  loop:
+    - gcc
+    - python-devel
+    - epel-release
+
+- name: Install etcd
+  yum: name=etcd state=installed
+
+- name: Copy Etcd conf
+  copy: src={{ source_file_etcd_conf }} dest={{ destin_file_etcd_conf }}
+  notify: Restart Etcd
+
+- name: Start Etcd service and enable it
+  service: name=etcd state=started enabled=yes
+
+- name: Stop firewalld service (just in case)
+  service: name=firewalld state=stopped

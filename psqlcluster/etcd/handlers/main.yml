@@ -1,0 +1,12 @@
+---
+# handlers file
+
+
+- name: Restart Etcd
+  service: name=etcd state=restarted
+
+- name: Restart patroni
+  service: name=patroni state=restarted
+
+- name: Restart Pgbouncer
+  shell: systemctl restart pgbouncer
